@@ -1,0 +1,47 @@
+services:
+  poller:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: halifax-transit-poller
+    restart: unless-stopped
+    volumes:
+      - ../data:/app/data
+    environment:
+      - POLL_INTERVAL_SECONDS=30
+      - REQUEST_TIMEOUT_SECONDS=10
+      - EARLY_THRESHOLD=-60
+      - LATE_THRESHOLD=300
+      - MAX_FEED_AGE_SECONDS=300
+      - ARCHIVE_RETENTION_DAYS=90
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: One-time setup container
+  setup:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: halifax-transit-setup
+    volumes:
+      - ../data:/app/data
+    command: >
+      sh -c "uv run python scripts/setup_db.py &&
+             uv run python scripts/load_static_gtfs.py --download"
+    profiles:
+      - setup
+
+  # Optional: Daily aggregation job (run via cron or scheduler)
+  aggregation:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: halifax-transit-aggregation
+    volumes:
+      - ../data:/app/data
+    command: uv run python scripts/run_aggregation.py
+    profiles:
+      - aggregation
