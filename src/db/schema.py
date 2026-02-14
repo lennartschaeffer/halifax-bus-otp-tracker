@@ -59,7 +59,6 @@ def create_tables(conn: duckdb.DuckDBPyConnection | None = None) -> None:
             CREATE TABLE IF NOT EXISTS daily_route_summary (
                 service_date        DATE NOT NULL,
                 route_id            VARCHAR NOT NULL,
-                direction_id        TINYINT,
                 total_observations  INTEGER NOT NULL,
                 on_time_count       INTEGER NOT NULL,
                 early_count         INTEGER NOT NULL,
@@ -73,7 +72,7 @@ def create_tables(conn: duckdb.DuckDBPyConnection | None = None) -> None:
                 unique_trips        INTEGER,
                 unique_vehicles     INTEGER,
                 unique_stops        INTEGER,
-                PRIMARY KEY (service_date, route_id, direction_id)
+                PRIMARY KEY (service_date, route_id)
             )
         """)
 
@@ -83,12 +82,11 @@ def create_tables(conn: duckdb.DuckDBPyConnection | None = None) -> None:
                 service_date        DATE NOT NULL,
                 route_id            VARCHAR NOT NULL,
                 hour_of_day         TINYINT NOT NULL,
-                direction_id        TINYINT,
                 total_observations  INTEGER NOT NULL,
                 on_time_count       INTEGER NOT NULL,
                 avg_delay_seconds   FLOAT,
                 on_time_percentage  FLOAT NOT NULL,
-                PRIMARY KEY (service_date, route_id, hour_of_day, direction_id)
+                PRIMARY KEY (service_date, route_id, hour_of_day)
             )
         """)
 

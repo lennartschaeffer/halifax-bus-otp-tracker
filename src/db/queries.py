@@ -14,9 +14,7 @@ def insert_stop_delay_events(
     conn: duckdb.DuckDBPyConnection,
     events: list[StopDelayEvent],
 ) -> int:
-    """Insert stop delay events into the database.
-
-    Uses INSERT OR IGNORE to handle duplicates gracefully.
+    """Upsert stop delay events into the database.
 
     Args:
         conn: Database connection.

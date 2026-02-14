@@ -99,7 +99,7 @@ def process_trip_updates(
             delay_for_otp = arrival_delay if arrival_delay is not None else departure_delay
 
             # Calculate time dimensions
-            hour_of_day = observed_at.hour
+            hour_of_day = predicted_arrival.hour if predicted_arrival else observed_at.hour
             day_of_week = observed_at.weekday()
 
             event = StopDelayEvent(

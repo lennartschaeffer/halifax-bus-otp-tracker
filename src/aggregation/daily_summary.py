@@ -34,7 +34,7 @@ def aggregate_daily_route_summary(
     result = conn.execute(
         f"""
         INSERT INTO daily_route_summary (
-            service_date, route_id, direction_id,
+            service_date, route_id,
             total_observations, on_time_count, early_count, late_count,
             avg_delay_seconds, median_delay_seconds, p95_delay_seconds,
             max_delay_seconds, min_delay_seconds,
@@ -43,7 +43,6 @@ def aggregate_daily_route_summary(
         SELECT
             service_date,
             route_id,
-            direction_id,
             COUNT(*) as total_observations,
             SUM(CASE WHEN is_on_time THEN 1 ELSE 0 END) as on_time_count,
             SUM(CASE WHEN arrival_delay < {EARLY_THRESHOLD} THEN 1 ELSE 0 END) as early_count,
@@ -60,7 +59,7 @@ def aggregate_daily_route_summary(
         FROM stop_delay_events
         WHERE service_date = ?
           AND arrival_delay IS NOT NULL
-        GROUP BY service_date, route_id, direction_id
+        GROUP BY service_date, route_id
         """,
         [service_date],
     )
@@ -97,14 +96,13 @@ def aggregate_hourly_route_summary(
     conn.execute(
         """
         INSERT INTO hourly_route_summary (
-            service_date, route_id, hour_of_day, direction_id,
+            service_date, route_id, hour_of_day,
             total_observations, on_time_count, avg_delay_seconds, on_time_percentage
         )
         SELECT
             service_date,
             route_id,
             hour_of_day,
-            direction_id,
             COUNT(*) as total_observations,
             SUM(CASE WHEN is_on_time THEN 1 ELSE 0 END) as on_time_count,
             AVG(arrival_delay) as avg_delay_seconds,
@@ -112,7 +110,7 @@ def aggregate_hourly_route_summary(
         FROM stop_delay_events
         WHERE service_date = ?
           AND arrival_delay IS NOT NULL
-        GROUP BY service_date, route_id, hour_of_day, direction_id
+        GROUP BY service_date, route_id, hour_of_day
         """,
         [service_date],
     )
