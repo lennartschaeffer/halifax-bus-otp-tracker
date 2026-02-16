@@ -1,6 +1,5 @@
 """Load static GTFS data into DuckDB reference tables."""
 
-import csv
 import io
 import zipfile
 from pathlib import Path
@@ -9,13 +8,6 @@ import duckdb
 import requests
 
 from src.config import GTFS_DIR, STATIC_GTFS_URL
-
-
-def _convert_gtfs_date(date_str: str | None) -> str | None:
-    """Convert GTFS date format (YYYYMMDD) to ISO format (YYYY-MM-DD)."""
-    if not date_str or len(date_str) != 8:
-        return None
-    return f"{date_str[:4]}-{date_str[4:6]}-{date_str[6:8]}"
 
 
 def download_static_gtfs(output_dir: Path | None = None) -> Path:
@@ -63,154 +55,100 @@ def load_static_gtfs(
     routes_file = gtfs_dir / "routes.txt"
     if routes_file.exists():
         conn.execute("DELETE FROM gtfs_routes")
-        with open(routes_file, newline="", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            rows = [
-                (
-                    row["route_id"],
-                    row.get("route_short_name"),
-                    row.get("route_long_name"),
-                    int(row["route_type"]) if row.get("route_type") else None,
-                )
-                for row in reader
-            ]
-            conn.executemany(
-                """
-                INSERT INTO gtfs_routes (route_id, route_short_name, route_long_name, route_type)
-                VALUES (?, ?, ?, ?)
-                """,
-                rows,
-            )
-            counts["routes"] = len(rows)
+        conn.execute(
+            """
+            INSERT INTO gtfs_routes (route_id, route_short_name, route_long_name, route_type)
+            SELECT route_id, route_short_name, route_long_name, CAST(route_type AS INTEGER)
+            FROM read_csv_auto(?, header=true, all_varchar=true)
+            """,
+            [str(routes_file)],
+        )
+        counts["routes"] = conn.execute("SELECT count(*) FROM gtfs_routes").fetchone()[0]
 
     # Load stops.txt
     stops_file = gtfs_dir / "stops.txt"
     if stops_file.exists():
         conn.execute("DELETE FROM gtfs_stops")
-        with open(stops_file, newline="", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            rows = [
-                (
-                    row["stop_id"],
-                    row.get("stop_name"),
-                    float(row["stop_lat"]) if row.get("stop_lat") else None,
-                    float(row["stop_lon"]) if row.get("stop_lon") else None,
-                )
-                for row in reader
-            ]
-            conn.executemany(
-                """
-                INSERT INTO gtfs_stops (stop_id, stop_name, stop_lat, stop_lon)
-                VALUES (?, ?, ?, ?)
-                """,
-                rows,
-            )
-            counts["stops"] = len(rows)
+        conn.execute(
+            """
+            INSERT INTO gtfs_stops (stop_id, stop_name, stop_lat, stop_lon)
+            SELECT stop_id, stop_name, CAST(stop_lat AS DOUBLE), CAST(stop_lon AS DOUBLE)
+            FROM read_csv_auto(?, header=true, all_varchar=true)
+            """,
+            [str(stops_file)],
+        )
+        counts["stops"] = conn.execute("SELECT count(*) FROM gtfs_stops").fetchone()[0]
 
     # Load trips.txt
     trips_file = gtfs_dir / "trips.txt"
     if trips_file.exists():
         conn.execute("DELETE FROM gtfs_trips")
-        with open(trips_file, newline="", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            rows = [
-                (
-                    row["trip_id"],
-                    row.get("route_id"),
-                    row.get("service_id"),
-                    row.get("trip_headsign"),
-                    int(row["direction_id"]) if row.get("direction_id") else None,
-                )
-                for row in reader
-            ]
-            conn.executemany(
-                """
-                INSERT INTO gtfs_trips (trip_id, route_id, service_id, trip_headsign, direction_id)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                rows,
-            )
-            counts["trips"] = len(rows)
+        conn.execute(
+            """
+            INSERT INTO gtfs_trips (trip_id, route_id, service_id, trip_headsign, direction_id)
+            SELECT trip_id, route_id, service_id, trip_headsign, CAST(direction_id AS TINYINT)
+            FROM read_csv_auto(?, header=true, all_varchar=true)
+            """,
+            [str(trips_file)],
+        )
+        counts["trips"] = conn.execute("SELECT count(*) FROM gtfs_trips").fetchone()[0]
 
     # Load stop_times.txt
     stop_times_file = gtfs_dir / "stop_times.txt"
     if stop_times_file.exists():
         conn.execute("DELETE FROM gtfs_stop_times")
-        with open(stop_times_file, newline="", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            rows = [
-                (
-                    row["trip_id"],
-                    int(row["stop_sequence"]),
-                    row["stop_id"],
-                    row.get("arrival_time"),
-                    row.get("departure_time"),
-                )
-                for row in reader
-            ]
-            conn.executemany(
-                """
-                INSERT INTO gtfs_stop_times (trip_id, stop_sequence, stop_id, arrival_time, departure_time)
-                VALUES (?, ?, ?, ?, ?)
-                """,
-                rows,
-            )
-            counts["stop_times"] = len(rows)
+        conn.execute(
+            """
+            INSERT INTO gtfs_stop_times (trip_id, stop_sequence, stop_id, arrival_time, departure_time)
+            SELECT trip_id, CAST(stop_sequence AS INTEGER), stop_id, arrival_time, departure_time
+            FROM read_csv_auto(?, header=true, all_varchar=true)
+            """,
+            [str(stop_times_file)],
+        )
+        counts["stop_times"] = conn.execute("SELECT count(*) FROM gtfs_stop_times").fetchone()[0]
 
     # Load calendar.txt
     calendar_file = gtfs_dir / "calendar.txt"
     if calendar_file.exists():
         conn.execute("DELETE FROM gtfs_calendar")
-        with open(calendar_file, newline="", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            rows = [
-                (
-                    row["service_id"],
-                    row.get("monday") == "1",
-                    row.get("tuesday") == "1",
-                    row.get("wednesday") == "1",
-                    row.get("thursday") == "1",
-                    row.get("friday") == "1",
-                    row.get("saturday") == "1",
-                    row.get("sunday") == "1",
-                    _convert_gtfs_date(row.get("start_date")),
-                    _convert_gtfs_date(row.get("end_date")),
-                )
-                for row in reader
-            ]
-            conn.executemany(
-                """
-                INSERT INTO gtfs_calendar (
-                    service_id, monday, tuesday, wednesday, thursday,
-                    friday, saturday, sunday, start_date, end_date
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """,
-                rows,
+        conn.execute(
+            """
+            INSERT INTO gtfs_calendar (
+                service_id, monday, tuesday, wednesday, thursday,
+                friday, saturday, sunday, start_date, end_date
             )
-            counts["calendar"] = len(rows)
+            SELECT
+                service_id,
+                monday = '1',
+                tuesday = '1',
+                wednesday = '1',
+                thursday = '1',
+                friday = '1',
+                saturday = '1',
+                sunday = '1',
+                strptime(start_date, '%Y%m%d')::DATE,
+                strptime(end_date, '%Y%m%d')::DATE
+            FROM read_csv_auto(?, header=true, all_varchar=true)
+            """,
+            [str(calendar_file)],
+        )
+        counts["calendar"] = conn.execute("SELECT count(*) FROM gtfs_calendar").fetchone()[0]
 
     # Load calendar_dates.txt
     calendar_dates_file = gtfs_dir / "calendar_dates.txt"
     if calendar_dates_file.exists():
         conn.execute("DELETE FROM gtfs_calendar_dates")
-        with open(calendar_dates_file, newline="", encoding="utf-8-sig") as f:
-            reader = csv.DictReader(f)
-            rows = [
-                (
-                    row["service_id"],
-                    _convert_gtfs_date(row["date"]),
-                    int(row["exception_type"]) if row.get("exception_type") else None,
-                )
-                for row in reader
-            ]
-            conn.executemany(
-                """
-                INSERT INTO gtfs_calendar_dates (service_id, date, exception_type)
-                VALUES (?, ?, ?)
-                """,
-                rows,
-            )
-            counts["calendar_dates"] = len(rows)
+        conn.execute(
+            """
+            INSERT INTO gtfs_calendar_dates (service_id, date, exception_type)
+            SELECT
+                service_id,
+                strptime(date, '%Y%m%d')::DATE,
+                CAST(exception_type AS INTEGER)
+            FROM read_csv_auto(?, header=true, all_varchar=true)
+            """,
+            [str(calendar_dates_file)],
+        )
+        counts["calendar_dates"] = conn.execute("SELECT count(*) FROM gtfs_calendar_dates").fetchone()[0]
 
     return counts

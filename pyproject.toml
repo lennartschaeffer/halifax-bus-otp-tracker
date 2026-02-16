@@ -1,7 +1,7 @@
 [project]
-name = "bus-realtime"
+name = "halifax-bus-otp-tracker"
 version = "0.1.0"
-description = "Add your description here"
+description = "goated application"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [

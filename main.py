@@ -79,7 +79,6 @@ def poll_once(poller: GTFSRealtimePoller, conn) -> None:
 def main() -> None:
     logger.info(
         f"Starting poller — polling every {POLL_INTERVAL_SECONDS}s "
-        f"for {RUN_DURATION_SECONDS}s"
     )
 
     poller = GTFSRealtimePoller()
@@ -89,11 +88,6 @@ def main() -> None:
     try:
         while True:
             poll_once(poller, conn)
-
-            elapsed = time.time() - start_time
-            if RUN_DURATION_SECONDS and elapsed >= RUN_DURATION_SECONDS:
-                logger.info(f"Run duration reached ({RUN_DURATION_SECONDS}s). Stopping.")
-                break
 
             time.sleep(POLL_INTERVAL_SECONDS)
 
