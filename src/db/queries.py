@@ -3,6 +3,7 @@
 from datetime import datetime
 
 import duckdb
+import pandas as pd
 
 from src.models import (
     PollLogRecord,
@@ -26,38 +27,42 @@ def insert_stop_delay_events(
     if not events:
         return 0
 
-    values = [
-        (
-            e.observed_at,
-            e.trip_id,
-            e.stop_id,
-            e.stop_sequence,
-            e.service_date,
-            e.route_id,
-            e.direction_id,
-            e.vehicle_id,
-            e.arrival_delay,
-            e.departure_delay,
-            e.predicted_arrival,
-            e.predicted_departure,
-            e.feed_timestamp,
-            e.hour_of_day,
-            e.day_of_week,
-            e.is_on_time,
-        )
+    df = pd.DataFrame([
+        {
+            "observed_at": e.observed_at,
+            "trip_id": e.trip_id,
+            "stop_id": e.stop_id,
+            "stop_sequence": e.stop_sequence,
+            "service_date": e.service_date,
+            "route_id": e.route_id,
+            "direction_id": e.direction_id,
+            "vehicle_id": e.vehicle_id,
+            "arrival_delay": e.arrival_delay,
+            "departure_delay": e.departure_delay,
+            "predicted_arrival": e.predicted_arrival,
+            "predicted_departure": e.predicted_departure,
+            "feed_timestamp": e.feed_timestamp,
+            "hour_of_day": e.hour_of_day,
+            "day_of_week": e.day_of_week,
+            "is_on_time": e.is_on_time,
+        }
         for e in events
-    ]
+    ])
 
-    conn.executemany(
+    conn.execute(
         """
         INSERT OR REPLACE INTO stop_delay_events (
             observed_at, trip_id, stop_id, stop_sequence, service_date,
             route_id, direction_id, vehicle_id, arrival_delay, departure_delay,
             predicted_arrival, predicted_departure, feed_timestamp,
             hour_of_day, day_of_week, is_on_time
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) SELECT
+            observed_at, trip_id, stop_id, stop_sequence, service_date,
+            route_id, direction_id, vehicle_id, arrival_delay, departure_delay,
+            predicted_arrival, predicted_departure, feed_timestamp,
+            hour_of_day, day_of_week, is_on_time
+        FROM df
         """,
-        values,
     )
 
     return len(events)
