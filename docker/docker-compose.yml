@@ -8,7 +8,7 @@ services:
     volumes:
       - ../data:/app/data
     environment:
-      - POLL_INTERVAL_SECONDS=30
+      - POLL_INTERVAL_SECONDS=60
       - REQUEST_TIMEOUT_SECONDS=10
       - EARLY_THRESHOLD=-60
       - LATE_THRESHOLD=300

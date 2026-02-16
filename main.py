@@ -18,7 +18,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # How long to run the poller (seconds). Set to None for indefinite.
-RUN_DURATION_SECONDS = 10 * 60  # 10 minutes
+# RUN_DURATION_SECONDS = 10 * 60  # 10 minutes
 
 
 def poll_once(poller: GTFSRealtimePoller, conn) -> None:

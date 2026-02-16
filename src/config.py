@@ -21,7 +21,7 @@ TRIP_UPDATES_URL = "https://gtfs.halifax.ca/realtime/TripUpdate/TripUpdates.pb"
 STATIC_GTFS_URL = "https://gtfs.halifax.ca/static/google_transit.zip"
 
 # Polling configuration
-POLL_INTERVAL_SECONDS = int(os.getenv("POLL_INTERVAL_SECONDS", "30"))
+POLL_INTERVAL_SECONDS = int(os.getenv("POLL_INTERVAL_SECONDS", "60"))
 REQUEST_TIMEOUT_SECONDS = int(os.getenv("REQUEST_TIMEOUT_SECONDS", "10"))
 
 # On-time performance thresholds (in seconds)
