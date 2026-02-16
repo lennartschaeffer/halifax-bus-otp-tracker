@@ -8,6 +8,7 @@ services:
     volumes:
       - ../data:/app/data
     environment:
+      - PYTHONUNBUFFERED=1
       - POLL_INTERVAL_SECONDS=60
       - REQUEST_TIMEOUT_SECONDS=10
       - EARLY_THRESHOLD=-60
@@ -19,6 +20,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    profiles:
+      - poller
 
   # Optional: One-time setup container
   setup:
